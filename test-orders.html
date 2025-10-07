@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Orders Table</title>
+    <link rel="stylesheet" href="style.css?v=2">
+</head>
+<body style="padding: 20px; background: #f5f5f5;">
+    <div class="orders-table-container">
+        <div class="orders-table-header">
+            <div class="table-tabs">
+                <div class="table-tab active">All Orders</div>
+                <div class="table-tab">Pending</div>
+                <div class="table-tab">Ongoing</div>
+                <div class="table-tab">Completed</div>
+            </div>
+            <button id="addOrderBtnOrders" class="add-btn">+</button>
+        </div>
+        <div id="orders-list"></div>
+    </div>
+
+    <!-- Test Data -->
+    <script>
+        // Mock data for testing
+        window.AppData = {
+            orders: [
+                {
+                    orderId: '00001',
+                    name: 'John Doe',
+                    service: 'Dry Cleaning',
+                    statusValue: 'completed',
+                    amount: '2500',
+                    dateValue: '2024-01-28'
+                },
+                {
+                    orderId: '00002',
+                    name: 'Jane Smith',
+                    service: 'Wash and Fold',
+                    statusValue: 'ongoing',
+                    amount: '750',
+                    dateValue: '2024-01-25'
+                },
+                {
+                    orderId: '00003',
+                    name: 'Adam Cruz',
+                    service: 'Wash and Fold',
+                    statusValue: 'pending',
+                    amount: '150',
+                    dateValue: '2024-01-20'
+                }
+            ]
+        };
+
+        // Mock utils
+        window.AppUtils = {
+            formatDate: function(dateStr) {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString();
+            }
+        };
+    </script>
+
+    <!-- Load the orders module -->
+    <script src="js/orders.js?v=2"></script>
+    
+    <script>
+        // Force render after everything loads
+        setTimeout(() => {
+            if (window.ordersModule) {
+                console.log('Forcing orders render');
+                window.ordersModule.render();
+            }
+        }, 500);
+    </script>
+</body>
+</html>
