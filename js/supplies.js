@@ -162,7 +162,12 @@ class SuppliesModule {
     const changeAmount = parseInt(change);
     const newQuantity = Math.max(0, currentQuantity + changeAmount);
     
-    console.log(`Changing ${supplyKey} from ${currentQuantity} to ${newQuantity} (change: ${changeAmount})`);
+    console.log('=== Supply Change Details ===');
+    console.log('Supply Key:', supplyKey);
+    console.log('Current Quantity:', currentQuantity);
+    console.log('Change Amount:', changeAmount);
+    console.log('New Quantity:', newQuantity);
+    console.log('All Supplies:', currentSupplies);
     
     // Update the supply
     const updatedSupplies = { ...currentSupplies };

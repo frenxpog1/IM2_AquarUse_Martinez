@@ -1,8 +1,19 @@
--- Aquaruse Laundry Database Schema
+-- ============================================
+-- AQUARUSE LAUNDRY MANAGEMENT SYSTEM
+-- DATABASE SETUP SCRIPT
+-- ============================================
+-- Purpose: Creates database and all tables
+-- Run this FIRST before inserting data
+-- ============================================
+
+-- Create database
 CREATE DATABASE IF NOT EXISTS aquaruse;
 USE aquaruse;
 
--- Orders table
+-- ============================================
+-- TABLE: orders
+-- Stores all laundry orders
+-- ============================================
 CREATE TABLE IF NOT EXISTS orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id VARCHAR(50) UNIQUE NOT NULL,
@@ -19,7 +30,10 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Customers table
+-- ============================================
+-- TABLE: customers
+-- Stores customer information
+-- ============================================
 CREATE TABLE IF NOT EXISTS customers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -29,10 +43,13 @@ CREATE TABLE IF NOT EXISTS customers (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Supplies table
+-- ============================================
+-- TABLE: supplies
+-- Stores inventory supplies
+-- ============================================
 CREATE TABLE IF NOT EXISTS supplies (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL UNIQUE,
     quantity INT NOT NULL DEFAULT 0,
     unit VARCHAR(50) DEFAULT 'pcs',
     low_stock_threshold INT DEFAULT 10,
@@ -40,7 +57,10 @@ CREATE TABLE IF NOT EXISTS supplies (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Staff table
+-- ============================================
+-- TABLE: staff
+-- Stores staff member information
+-- ============================================
 CREATE TABLE IF NOT EXISTS staff (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -51,7 +71,10 @@ CREATE TABLE IF NOT EXISTS staff (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Accounts table (for admin management)
+-- ============================================
+-- TABLE: accounts
+-- Stores admin and manager accounts
+-- ============================================
 CREATE TABLE IF NOT EXISTS accounts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     account_name VARCHAR(255) NOT NULL,
@@ -61,7 +84,10 @@ CREATE TABLE IF NOT EXISTS accounts (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- User settings table
+-- ============================================
+-- TABLE: user_settings
+-- Stores user preferences and settings
+-- ============================================
 CREATE TABLE IF NOT EXISTS user_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -74,7 +100,10 @@ CREATE TABLE IF NOT EXISTS user_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Notifications table
+-- ============================================
+-- TABLE: notifications
+-- Stores system notifications
+-- ============================================
 CREATE TABLE IF NOT EXISTS notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_email VARCHAR(255) NOT NULL,
@@ -86,22 +115,17 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert sample data
-INSERT IGNORE INTO supplies (name, quantity, unit, low_stock_threshold) VALUES
-('detergent', 25, 'bottles', 5),
-('softener', 20, 'bottles', 3),
-('bleach', 15, 'bottles', 2),
-('fragrance', 18, 'bottles', 5),
-('stain_remover', 12, 'bottles', 3),
-('steam_water', 25, 'liters', 5),
-('garment_bag', 100, 'pcs', 20);
-
-INSERT IGNORE INTO staff (name, email, phone, password) VALUES
-('John Staff', 'staff@aquaruse', '+1234567890', 'staff123');
-
--- Create indexes for better performance
+-- ============================================
+-- CREATE INDEXES FOR PERFORMANCE
+-- ============================================
 CREATE INDEX idx_orders_date ON orders(DATE);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_customers_name ON customers(name);
 CREATE INDEX idx_notifications_user ON notifications(user_email);
 CREATE INDEX idx_notifications_read ON notifications(is_read);
+
+-- ============================================
+-- SETUP COMPLETE
+-- ============================================
+SELECT 'Database setup completed successfully!' AS message;
+SELECT 'Next step: Run 2_insert_data.sql to populate tables' AS next_step;

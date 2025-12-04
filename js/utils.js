@@ -321,11 +321,8 @@ window.AppUtils = {
             }
         }
 
-        // Save the updated supplies
+        // Save the updated supplies (localStorage only)
         window.AppData.save();
-        
-        // Also try to update supplies in database via API
-        this.updateSuppliesInDatabase();
         
         // Show stock notifications
         this.showStockNotifications(lowStockSupplies, outOfStockSupplies);
@@ -557,20 +554,6 @@ window.AppUtils = {
         return { hours, minutes, milliseconds: timeUntilNext };
     },
 
-    // Update supplies in database
-    async updateSuppliesInDatabase() {
-        try {
-            for (const [supply, quantity] of Object.entries(window.AppData.supplies)) {
-                await window.apiService.put('update_supply', {
-                    name: supply,
-                    quantity: quantity
-                });
-            }
-        } catch (error) {
-            console.warn('Could not update supplies in database:', error.message);
-        }
-    },
-
     // Format shortage message
     formatShortageMessage(shortages) {
         const messages = shortages.map(shortage => 
@@ -585,57 +568,32 @@ window.AppData = {
     orders: [],
     customers: [],
     staff: [],
-    supplies: {
-        detergent: 15,
-        softener: 15,
-        bleach: 15,
-        fragrance: 15,
-        stain_remover: 15,
-        steam_water: 15,
-        garment_bag: 15
-    },
+    supplies: {}, // Empty - will be loaded from database only
     orderIdCounter: 1,
     isLoaded: false,
 
-    // Initialize data from API or localStorage
+    // Initialize data from DATABASE ONLY
     async init() {
         if (this.isLoaded) return;
         
-        console.log('Initializing AppData...');
+        console.log('Initializing AppData from database...');
         
-        // Check if data was recently cleared
-        const dataWasCleared = localStorage.getItem('dataCleared') === 'true' || window.dataCleared;
-        
-        if (dataWasCleared) {
-            console.log('Data was cleared, starting with default supplies');
+        // Always load from database (API)
+        try {
+            await this.loadFromAPI();
+            console.log('Data loaded from database successfully');
+        } catch (error) {
+            console.error('Failed to load from database:', error.message);
+            // Show error - do NOT fallback to localStorage
+            if (window.AppUtils) {
+                window.AppUtils.showNotification('Database connection required. Please check your connection.', 'error');
+            }
+            // Initialize with empty data
             this.orders = [];
             this.customers = [];
             this.staff = [];
-            // Start with default supply values, not 0
-            this.supplies = {
-                detergent: 15,
-                softener: 15,
-                bleach: 15,
-                fragrance: 15,
-                stain_remover: 15,
-                steam_water: 15,
-                garment_bag: 15
-            };
+            this.supplies = {};
             this.orderIdCounter = 1;
-        } else {
-            // Try to load from API first
-            try {
-                await this.loadFromAPI();
-                
-                // Only load from localStorage if API didn't provide data
-                if (this.orders.length === 0 && this.staff.length === 0) {
-                    console.log('No API data found, loading from localStorage');
-                    this.loadFromLocalStorage();
-                }
-            } catch (error) {
-                console.warn('API load failed, using localStorage:', error.message);
-                this.loadFromLocalStorage();
-            }
         }
         
         // Clean up any duplicate orders
@@ -696,57 +654,44 @@ window.AppData = {
             // Process customers - but generate from orders instead
             // We'll generate customers from orders, not load from API
             
-            // Process supplies - ALWAYS use localStorage, NEVER API
-            // Supplies are managed locally and should not be overwritten by API
-            const localData = localStorage.getItem('laundryAppData');
-            let suppliesLoaded = false;
-            
-            if (localData) {
-                try {
-                    const parsed = JSON.parse(localData);
-                    if (parsed.supplies) {
-                        this.supplies = parsed.supplies;
-                        suppliesLoaded = true;
-                        console.log('Loaded supplies from localStorage:', Object.keys(this.supplies).length);
-                    }
-                } catch (e) {
-                    console.warn('Error parsing localStorage for supplies:', e);
-                }
+            // Process supplies - ONLY from database
+            if (suppliesResult.status === 'fulfilled' && suppliesResult.value && suppliesResult.value.success) {
+                const apiSupplies = suppliesResult.value.data;
+                this.supplies = {};
+                apiSupplies.forEach(supply => {
+                    // Ensure quantity is stored as a number
+                    this.supplies[supply.name] = parseInt(supply.quantity) || 0;
+                });
+                console.log('Loaded supplies from database:', Object.keys(this.supplies).length);
+            } else {
+                // No fallback - supplies must come from database
+                console.warn('Failed to load supplies from database');
+                this.supplies = {};
             }
             
-            // If no localStorage supplies, initialize with default values (not from API)
-            if (!suppliesLoaded) {
-                this.supplies = {
-                    detergent: 15,
-                    softener: 15,
-                    bleach: 15,
-                    fragrance: 15,
-                    stain_remover: 15,
-                    steam_water: 15,
-                    garment_bag: 15
-                };
-                console.log('Initialized supplies with default values');
-            }
-            
-            // Ensure all required supplies exist
+            // Ensure all required supplies exist with default value of 0
             const requiredSupplies = ['detergent', 'softener', 'bleach', 'fragrance', 'stain_remover', 'steam_water', 'garment_bag'];
             
             for (const key of requiredSupplies) {
                 if (!(key in this.supplies)) {
-                    this.supplies[key] = 15; // Default value for missing supplies
+                    this.supplies[key] = 0;
                 }
             }
 
-            // Process staff
+            // Process staff - ONLY from database
             if (staffResult.status === 'fulfilled' && staffResult.value && staffResult.value.success) {
                 this.staff = staffResult.value.data;
-                console.log('Loaded staff from API:', this.staff.length);
+                console.log('Loaded staff from database:', this.staff.length);
+            } else {
+                // No fallback - staff must come from database
+                console.warn('Failed to load staff from database');
+                this.staff = [];
             }
 
-            // Only save to localStorage if we got API data
+            // Save to localStorage as backup only (not used for loading)
             if (apiDataLoaded) {
                 this.saveToLocalStorage();
-                console.log('API data saved to localStorage as backup');
+                console.log('Data backed up to localStorage');
             }
             
         } catch (error) {
@@ -882,25 +827,35 @@ window.AppData = {
         console.log(`Fixed order ID counter to: ${this.orderIdCounter}`);
     },
 
-    // Update supplies data
+    // Update supplies data (saves to both localStorage and database)
     updateSupplies(newSupplies) {
         this.supplies = { ...this.supplies, ...newSupplies };
         this.saveToLocalStorage();
         
-        // Try to sync with API
-        this.syncSuppliesWithAPI();
+        // Also sync with database
+        this.syncSuppliesWithDatabase();
+        
+        console.log('Supplies updated:', newSupplies);
     },
 
-    // Sync supplies with API
-    async syncSuppliesWithAPI() {
-        if (!window.apiService) return;
+    // Sync supplies with database
+    async syncSuppliesWithDatabase() {
+        if (!window.apiService) {
+            console.warn('API service not available');
+            return;
+        }
         
         try {
+            // Update each supply in the database
             for (const [name, quantity] of Object.entries(this.supplies)) {
-                await window.apiService.put('update_supply', { name, quantity });
+                await window.apiService.put('update_supply', { 
+                    name: name, 
+                    quantity: quantity 
+                });
             }
+            console.log('Supplies synced with database successfully');
         } catch (error) {
-            console.warn('Could not sync supplies with API:', error.message);
+            console.warn('Could not sync supplies with database:', error.message);
         }
     },
 
@@ -953,26 +908,6 @@ window.AppData = {
         this.saveToLocalStorage();
         
         return this.customers;
-    },
-
-    // Reset all data to defaults (for debugging)
-    resetToDefaults() {
-        this.orders = [];
-        this.customers = [];
-        this.staff = [];
-        this.supplies = {
-            detergent: 15,
-            softener: 15,
-            bleach: 15,
-            fragrance: 15,
-            stain_remover: 15,
-            steam_water: 15,
-            garment_bag: 15
-        };
-        this.orderIdCounter = 1;
-        this.isLoaded = false;
-        this.saveToLocalStorage();
-        console.log('Data reset to defaults');
     },
 
     // Normalize order data to ensure proper number formats

@@ -336,91 +336,84 @@ function handlePost($conn, $action) {
                 break;
             }
 
+            // Read and execute SQL file directly
+            $sql_file = __DIR__ . '/../2_insert_data.sql';
+            
+            if (!file_exists($sql_file)) {
+                http_response_code(500);
+                echo json_encode(['error' => 'SQL file not found: 2_insert_data.sql']);
+                break;
+            }
+
+            // Read the SQL file
+            $sql_content = file_get_contents($sql_file);
+            
+            if ($sql_content === false) {
+                http_response_code(500);
+                echo json_encode(['error' => 'Failed to read SQL file']);
+                break;
+            }
+
             // Clear existing data first
             $tables = ['orders', 'customers', 'staff', 'supplies', 'accounts'];
             foreach ($tables as $table) {
                 $conn->query("DELETE FROM $table");
             }
 
-            // Insert sample data with proper error handling
-            $sample_queries = [
-                // Orders
-                "INSERT INTO orders (order_id, name, DATE, service_type, kg, total_amount, amount_paid, balance, status, number) VALUES
-                ('00001', 'John Doe', CURDATE(), 'Dry Cleaning', 5.0, 250.00, 250.00, 0.00, 'completed', '09123456789'),
-                ('00002', 'Jane Smith', DATE_SUB(CURDATE(), INTERVAL 1 DAY), 'Wash and Fold', 3.0, 150.00, 100.00, 50.00, 'ongoing', '09187654321'),
-                ('00003', 'Bob Wilson', DATE_SUB(CURDATE(), INTERVAL 35 DAY), 'Regular Laundry', 2.0, 120.00, 0.00, 120.00, 'pending', '09156789012'),
-                ('00004', 'John Doe', DATE_SUB(CURDATE(), INTERVAL 2 DAY), 'Iron and Press', 1.0, 70.00, 70.00, 0.00, 'completed', '09123456789'),
-                ('00005', 'Maria Garcia', CURDATE(), 'Wash and Fold', 4.0, 200.00, 150.00, 50.00, 'ongoing', '09198765432')",
-
-                // Staff
-                "INSERT INTO staff (name, email, phone, password) VALUES
-                ('Sarah Wilson', 'sarah@aquaruse.com', '09111111111', 'sarah123'),
-                ('Mike Chen', 'mike@aquaruse.com', '09222222222', 'mike123')",
-
-                // Supplies
-                "INSERT INTO supplies (name, quantity, unit, low_stock_threshold) VALUES
-                ('detergent', 25, 'bottles', 5),
-                ('softener', 20, 'bottles', 3),
-                ('bleach', 15, 'bottles', 2),
-                ('fragrance', 18, 'bottles', 5),
-                ('stain_remover', 12, 'bottles', 3),
-                ('steam_water', 25, 'liters', 5),
-                ('garment_bag', 100, 'pcs', 20)",
-
-                // Accounts
-                "INSERT INTO accounts (account_name, email, password) VALUES
-                ('Admin User', 'admin@aquaruse', 'admin123'),
-                ('Staff Manager', 'staffmanager@aquaruse', 'staff123')"
-            ];
-
+            // Execute the SQL file using multi_query
             $success = true;
             $errors = [];
-
-            foreach ($sample_queries as $query) {
-                if (!$conn->query($query)) {
+            
+            if ($conn->multi_query($sql_content)) {
+                // Process all results
+                do {
+                    if ($result = $conn->store_result()) {
+                        $result->free();
+                    }
+                } while ($conn->more_results() && $conn->next_result());
+                
+                // Check for errors
+                if ($conn->error) {
                     $success = false;
                     $errors[] = $conn->error;
                 }
+            } else {
+                $success = false;
+                $errors[] = $conn->error;
             }
 
             if ($success) {
-                echo json_encode(['success' => true, 'message' => 'Sample data reset successfully']);
+                echo json_encode(['success' => true, 'message' => 'Sample data loaded from 2_insert_data.sql']);
             } else {
                 echo json_encode(['success' => false, 'errors' => $errors]);
             }
             break;
 
         case 'init_database':
-            // Initialize database with sample data if empty
+            // Initialize database from SQL file if empty
             $check_sql = "SELECT COUNT(*) as count FROM orders";
             $result = $conn->query($check_sql);
             $row = $result->fetch_assoc();
             
             if ($row['count'] == 0) {
-                // Database is empty, insert sample data
-                $sample_queries = [
-                    "INSERT INTO orders (order_id, name, DATE, service_type, kg, total_amount, amount_paid, balance, status, number) VALUES
-                    ('00001', 'John Doe', CURDATE(), 'Dry Cleaning', 5.0, 250.00, 250.00, 0.00, 'completed', '09123456789'),
-                    ('00002', 'Jane Smith', DATE_SUB(CURDATE(), INTERVAL 1 DAY), 'Wash and Fold', 3.0, 150.00, 100.00, 50.00, 'ongoing', '09187654321')",
-                    
-                    "INSERT INTO staff (name, email, phone, password) VALUES
-                    ('Sarah Wilson', 'sarah@aquaruse.com', '09111111111', 'sarah123')",
-                    
-                    "INSERT INTO supplies (name, quantity, unit, low_stock_threshold) VALUES
-                    ('detergent', 25, 'bottles', 5),
-                    ('softener', 20, 'bottles', 3),
-                    ('bleach', 15, 'bottles', 2),
-                    ('fragrance', 18, 'bottles', 5),
-                    ('stain_remover', 12, 'bottles', 3),
-                    ('steam_water', 25, 'liters', 5),
-                    ('garment_bag', 100, 'pcs', 20)"
-                ];
+                // Database is empty, load from SQL file
+                $sql_file = __DIR__ . '/../2_insert_data.sql';
                 
-                foreach ($sample_queries as $query) {
-                    $conn->query($query);
+                if (file_exists($sql_file)) {
+                    $sql_content = file_get_contents($sql_file);
+                    
+                    if ($conn->multi_query($sql_content)) {
+                        do {
+                            if ($result = $conn->store_result()) {
+                                $result->free();
+                            }
+                        } while ($conn->more_results() && $conn->next_result());
+                    }
+                    
+                    echo json_encode(['success' => true, 'message' => 'Database initialized from 2_insert_data.sql']);
+                } else {
+                    echo json_encode(['success' => false, 'error' => 'SQL file not found']);
                 }
-                
-                echo json_encode(['success' => true, 'message' => 'Database initialized with sample data']);
             } else {
                 echo json_encode(['success' => true, 'message' => 'Database already has data']);
             }

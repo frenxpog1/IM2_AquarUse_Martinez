@@ -378,16 +378,7 @@ class AdminPanel {
     window.AppData.orders = [];
     window.AppData.customers = [];
     window.AppData.staff = [];
-    // Don't reset supplies to 0 - keep them at default values
-    window.AppData.supplies = {
-      detergent: 15,
-      softener: 15,
-      bleach: 15,
-      fragrance: 15,
-      stain_remover: 15,
-      steam_water: 15,
-      garment_bag: 15
-    };
+    window.AppData.supplies = {}; // Empty - will be loaded from database
     window.AppData.orderIdCounter = 1;
     window.AppData.isLoaded = false; // Force reload on next access
     window.AppData.saveToLocalStorage();
@@ -423,71 +414,28 @@ class AdminPanel {
   }
 
   async addSampleData() {
-    // Just add sample data without clearing existing data
+    // Load sample data from 2_insert_data.sql via API
     try {
-      // Add sample data via API (this will add to existing data)
-      const sampleOrders = [
-        {
-          order_id: 'SAMPLE001',
-          customer_name: 'John Doe',
-          number: '09123456789',
-          date: new Date().toISOString().split('T')[0],
-          service_type: 'Dry Cleaning',
-          kg: 5,
-          total_amount: 250,
-          amount_paid: 250,
-          balance: 0,
-          status: 'completed'
-        },
-        {
-          order_id: 'SAMPLE002',
-          customer_name: 'Jane Smith',
-          number: '09187654321',
-          date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-          service_type: 'Wash and Fold',
-          kg: 3,
-          total_amount: 150,
-          amount_paid: 100,
-          balance: 50,
-          status: 'ongoing'
-        }
-      ];
-
-      // Add orders via API
-      for (const order of sampleOrders) {
-        try {
-          await window.apiService.addOrder(order);
-        } catch (error) {
-          console.warn('Failed to add sample order via API:', error);
-        }
+      console.log('Loading sample data from 2_insert_data.sql...');
+      
+      // Clear the data cleared flag FIRST
+      localStorage.removeItem('dataCleared');
+      window.dataCleared = false;
+      
+      // Call the API endpoint that reads and executes the SQL file
+      const result = await window.apiService.resetToSampleData('admin@aquaruse');
+      
+      if (result && result.success) {
+        console.log('Sample data loaded from SQL file successfully');
+        // Force reload data
+        window.AppData.isLoaded = false;
+      } else {
+        throw new Error(result?.error || 'Failed to load sample data');
       }
-
-      // Add sample staff via API
-      const sampleStaff = [
-        {
-          name: 'Sarah Wilson',
-          email: 'sarah@aquaruse.com',
-          phone: '09111111111',
-          password: 'sarah123'
-        }
-      ];
-
-      for (const staff of sampleStaff) {
-        try {
-          await window.apiService.post('add_staff', staff);
-        } catch (error) {
-          console.warn('Failed to add sample staff via API:', error);
-        }
-      }
-
-      console.log('Sample data added successfully');
     } catch (error) {
-      console.warn('Error adding sample data via API:', error.message);
+      console.error('Error loading sample data:', error.message);
+      throw error;
     }
-
-    // Clear the data cleared flag
-    localStorage.removeItem('dataCleared');
-    window.dataCleared = false;
   }
 
   async resetToSampleData() {
@@ -517,7 +465,11 @@ class AdminPanel {
   }
 
   async setLocalSampleData() {
-    // Fallback: try to use API to reset sample data
+    // Clear the dataCleared flag first
+    localStorage.removeItem('dataCleared');
+    window.dataCleared = false;
+    
+    // Try to use API to reset sample data
     try {
       const result = await window.apiService.resetToSampleData('admin@aquaruse');
       if (result && result.success) {
@@ -530,32 +482,21 @@ class AdminPanel {
         return;
       }
     } catch (error) {
-      console.warn('API sample data failed, using local fallback:', error);
+      console.warn('API sample data failed:', error);
     }
 
-    // Local fallback only if API fails
-    console.log('Using local sample data fallback');
-    
-    // Clear existing data first
-    window.AppData.orders = [];
-    window.AppData.staff = [];
-    window.AppData.customers = [];
-    
-    // Set minimal sample data locally
-    window.AppData.supplies = {
-      detergent: 25,
-      softener: 20,
-      bleach: 15,
-      fragrance: 18,
-      stain_remover: 12,
-      steam_water: 25,
-      garment_bag: 100
-    };
+    // API failed - cannot set sample data without database
+    console.error('Cannot set sample data: API not available');
+    window.AppUtils.showNotification('Error: Database connection required to load sample data', 'error');
+    throw new Error('API required for sample data');
+  }
 
-    window.AppData.orderIdCounter = 1;
-    window.AppData.saveToLocalStorage();
-
-    // Set minimal staff accounts for login
+  async setLocalSampleDataOLD() {
+    // DEPRECATED: This method is no longer used
+    // All data must come from database via API
+    // Keeping for reference only
+    
+    // Set minimal staff accounts for login (only thing that stays local)
     const staffAccounts = [
       {
         id: 'staff-1',
