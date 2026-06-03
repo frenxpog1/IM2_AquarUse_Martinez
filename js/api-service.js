@@ -3,21 +3,38 @@ class ApiService {
   constructor() {
     this.baseUrl = '../php/api.php';
     this.isOnline = navigator.onLine;
+    this.isDemoMode = false;
+    
+    // Check if we should run in demo mode (e.g., if hosted on vercel.app or explicitly set)
+    if (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('github.io')) {
+      this.isDemoMode = true;
+      console.log('Demo Mode: Active (Vercel/GitHub detected)');
+    }
     
     // Listen for online/offline events
     window.addEventListener('online', () => {
       this.isOnline = true;
-      this.syncOfflineData();
+      if (!this.isDemoMode) this.syncOfflineData();
     });
     
     window.addEventListener('offline', () => {
       this.isOnline = false;
     });
+
+    if (this.isDemoMode && window.DemoData) {
+      window.DemoData.init();
+    }
   }
 
   async request(method, action, data = null) {
+    // If in Demo Mode, bypass network and use DemoData mock
+    if (this.isDemoMode && window.DemoData) {
+      console.log(`Demo Mode Request: ${method} ${action}`);
+      return await window.DemoData.mockRequest(action, data);
+    }
+
     const url = `${this.baseUrl}?action=${action}`;
-    
+... (rest of the code) ...    
     const options = {
       method: method,
       headers: {

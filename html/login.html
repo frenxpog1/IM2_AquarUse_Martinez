@@ -36,6 +36,15 @@
           <button type="submit" class="sign-in-btn">Sign in</button>
         </form>
         <div id="login-error" class="login-error"></div>
+        
+        <!-- Demo Credentials Info -->
+        <div id="demo-info" style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; display: none;">
+          <p style="font-size: 0.9rem; color: #666; font-weight: 600; margin-bottom: 10px;">Demo Credentials:</p>
+          <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 0.85rem; color: #444;">
+            <p style="margin-bottom: 5px;"><strong>Admin:</strong> admin@aquaruse / admin</p>
+            <p><strong>Staff:</strong> staff@aquaruse / staff</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -48,8 +57,17 @@
       </div>
     </div>
   </div>
+
+  <script src="../js/demo-mode.js?v=1"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
+      // Check for demo mode (Vercel/GitHub)
+      const isDemo = window.location.hostname.includes('vercel.app') || window.location.hostname.includes('github.io');
+      if (isDemo) {
+        document.getElementById('demo-info').style.display = 'block';
+        if (window.DemoData) window.DemoData.init();
+      }
+
       // Password toggle functionality
       const passwordToggle = document.getElementById('passwordToggle');
       const passwordInput = document.getElementById('password');
@@ -60,10 +78,12 @@
 
         // Update icon
         const svg = passwordToggle.querySelector('svg');
-        if (type === 'text') {
-          svg.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
-        } else {
-          svg.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+        if (svg) {
+          if (type === 'text') {
+            svg.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+          } else {
+            svg.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+          }
         }
       });
 
@@ -74,8 +94,8 @@
         const password = document.getElementById('password').value;
         const errorDiv = document.getElementById('login-error');
 
-        // Admin login (no password required for demo)
-        if (email === 'admin@aquaruse') {
+        // Admin login
+        if (email === 'admin@aquaruse' && (password === 'admin' || !isDemo)) {
           localStorage.setItem('userEmail', email);
           localStorage.setItem('userRole', 'admin');
           window.location.href = 'spa.html';
