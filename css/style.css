@@ -3761,3 +3761,219 @@ Supplies Table Column Alignment */
   margin: 0 auto;
   width: fit-content;
 }
+
+
+/* Settings Modal Styles */
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 0;
+}
+
+.settings-tab {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s ease;
+  font-family: 'Lexend Deca', Arial, sans-serif;
+}
+
+.settings-tab:hover {
+  color: var(--primary-blue);
+}
+
+.settings-tab.active {
+  color: var(--primary-blue);
+  border-bottom-color: var(--primary-blue);
+}
+
+.settings-tab-content {
+  display: none;
+}
+
+.settings-tab-content.active {
+  display: block;
+}
+
+/* Profile Picture Section */
+.profile-picture-section {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--light-gray);
+  border-radius: 12px;
+}
+
+.current-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--primary-blue);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.profile-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upload-btn,
+.remove-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Lexend Deca', Arial, sans-serif;
+}
+
+.upload-btn {
+  background: var(--primary-blue);
+  color: white;
+}
+
+.upload-btn:hover {
+  background: var(--secondary-blue);
+}
+
+.remove-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.remove-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+/* Settings Form Single Column Layout */
+.modal-form-single {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-form-single label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: -8px;
+}
+
+.modal-form-single input,
+.modal-form-single select {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+
+.modal-form-single input:focus,
+.modal-form-single select:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+}
+
+.modal-form-single input:not([readonly]) {
+  cursor: text;
+}
+
+.modal-form-single input[readonly] {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* Password Requirements */
+.password-requirements {
+  margin-top: -8px;
+  padding: 8px 12px;
+  background: #f0f9ff;
+  border-radius: 6px;
+}
+
+.password-requirements small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* Override modal-form grid for settings */
+#settingsModalOverlay .modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+#settingsModalOverlay .modal-form .modal-add {
+  margin-top: 24px;
+}
+
+
+/* Fix clickability issues in settings modal */
+#settingsModalOverlay .modal {
+  pointer-events: auto;
+}
+
+#settingsModalOverlay .profile-upload button {
+  pointer-events: auto;
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
+}
+
+#settingsModalOverlay input:not([readonly]),
+#settingsModalOverlay select {
+  pointer-events: auto;
+  cursor: text;
+}
+
+#settingsModalOverlay input[type="file"] {
+  pointer-events: auto;
+}
+
+/* Ensure profile picture section is clickable */
+.profile-picture-section {
+  position: relative;
+  z-index: 1;
+}
+
+.profile-upload {
+  position: relative;
+  z-index: 2;
+}
+
+/* Fix button hover states */
+#settingsModalOverlay .upload-btn:hover {
+  background: var(--secondary-blue);
+  cursor: pointer;
+}
+
+#settingsModalOverlay .remove-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  cursor: pointer;
+}

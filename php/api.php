@@ -485,9 +485,13 @@ function handlePut($conn, $action) {
                 'password' => $conn->real_escape_string($input['password'])
             ];
 
-            // Find staff by id or email
+            // Find staff by id, old_email, or current email
             if (isset($input['id'])) {
                 $identifier = "id=" . intval($input['id']);
+            } else if (isset($input['old_email'])) {
+                // Use old_email to find the record when email is being changed
+                $old_email = $conn->real_escape_string($input['old_email']);
+                $identifier = "email='$old_email'";
             } else {
                 $old_email = $conn->real_escape_string($input['email']);
                 $identifier = "email='$old_email'";

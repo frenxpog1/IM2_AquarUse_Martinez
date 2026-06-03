@@ -321,8 +321,9 @@ window.AppUtils = {
             }
         }
 
-        // Save the updated supplies (localStorage only)
-        window.AppData.save();
+        // Save the updated supplies (localStorage and database)
+        window.AppData.saveToLocalStorage();
+        window.AppData.syncSuppliesWithDatabase();
         
         // Show stock notifications
         this.showStockNotifications(lowStockSupplies, outOfStockSupplies);

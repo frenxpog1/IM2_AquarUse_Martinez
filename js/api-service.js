@@ -25,7 +25,8 @@ class ApiService {
       }
     };
 
-    if (data && (method === 'POST' || method === 'PUT')) {
+    // Include body for POST, PUT, and DELETE requests
+    if (data && (method === 'POST' || method === 'PUT' || method === 'DELETE')) {
       options.body = JSON.stringify(data);
     }
 

@@ -9,7 +9,23 @@ class LaundryApp {
       return;
     }
 
+    // Verify user is valid (admin or staff)
+    const adminEmail = localStorage.getItem('adminEmail') || 'admin@aquaruse';
+    const staffAccounts = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
+    const isAdmin = this.userEmail === adminEmail;
+    const isStaff = staffAccounts.some(s => s.email === this.userEmail);
+    
+    if (!isAdmin && !isStaff) {
+      // Invalid user - clear and redirect to login
+      console.warn('Invalid user session, redirecting to login');
+      localStorage.removeItem('userEmail');
+      window.location.href = 'login.html';
+      return;
+    }
+
     // Initialize API service if not already done
+    // Note: api-service.js is already loaded before app.js, so window.apiService should be available.
+    // The initializeApiService call is kept as a safeguard but won't run if api-service.js loaded correctly.
     if (!window.apiService) {
       this.initializeApiService();
     }
@@ -124,7 +140,9 @@ class LaundryApp {
   }
 
   getUserRole() {
-    if (this.userEmail === 'admin@aquaruse') {
+    // Check if user is admin - use saved admin email or default
+    const adminEmail = localStorage.getItem('adminEmail') || 'admin@aquaruse';
+    if (this.userEmail === adminEmail) {
       return 'admin';
     }
 
@@ -144,15 +162,23 @@ class LaundryApp {
     let userName = 'Unknown User';
     let userRole = role.charAt(0).toUpperCase() + role.slice(1);
 
-    if (this.userEmail === 'admin@aquaruse') {
-      userName = 'Admin User';
+    // First check if there's a saved display name in user settings
+    const userSettingsKey = `userSettings_${this.userEmail}`;
+    const savedSettings = JSON.parse(localStorage.getItem(userSettingsKey) || '{}');
+
+    // Check if user is admin (using saved admin email)
+    const adminEmail = localStorage.getItem('adminEmail') || 'admin@aquaruse';
+    if (this.userEmail === adminEmail) {
+      // Use saved display name or default to 'Admin User'
+      userName = savedSettings.display_name || 'Admin User';
       userRole = 'Administrator';
     } else {
       // Get staff member details
       const staffAccounts = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
       const staffMember = staffAccounts.find(staff => staff.email === this.userEmail);
       if (staffMember) {
-        userName = staffMember.name;
+        // Use saved display name or staff account name
+        userName = savedSettings.display_name || staffMember.name;
         userRole = 'Staff Member';
       }
     }
@@ -165,9 +191,7 @@ class LaundryApp {
     userNameElements.forEach(el => el.textContent = userName);
     userRoleElements.forEach(el => el.textContent = userRole);
 
-    // Check for saved profile picture and update all avatar elements
-    const userSettingsKey = `userSettings_${this.userEmail}`;
-    const savedSettings = JSON.parse(localStorage.getItem(userSettingsKey) || '{}');
+    // Update all avatar elements with profile picture or initials
     const allAvatarElements = document.querySelectorAll('.user-avatar, .current-avatar');
 
     if (savedSettings.profilePicture) {
@@ -357,9 +381,30 @@ class LaundryApp {
     });
 
     // Setup profile picture upload
-    // Profile picture buttons now use inline onclick handlers in HTML
-    // No need for addEventListener here to avoid duplicate calls
-    console.log('Profile picture buttons use inline handlers');
+    const uploadProfileBtn = document.getElementById('uploadProfileBtn');
+    const removeProfileBtn = document.getElementById('removeProfileBtn');
+    const profilePictureInput = document.getElementById('profilePicture');
+
+    if (uploadProfileBtn && profilePictureInput) {
+      uploadProfileBtn.addEventListener('click', () => {
+        console.log('Upload button clicked');
+        profilePictureInput.click();
+      });
+    }
+
+    if (profilePictureInput) {
+      profilePictureInput.addEventListener('change', (event) => {
+        console.log('File selected');
+        this.handleProfilePictureUpload(event);
+      });
+    }
+
+    if (removeProfileBtn) {
+      removeProfileBtn.addEventListener('click', () => {
+        console.log('Remove button clicked');
+        this.removeProfilePicture();
+      });
+    }
 
     // Setup modal close
     if (settingsModalOverlay) {
@@ -431,16 +476,24 @@ class LaundryApp {
 
     // Get current user info
     const userRole = this.getUserRole();
-    let userName = 'Unknown User';
     let userEmail = this.userEmail;
 
-    if (this.userEmail === 'admin@aquaruse') {
-      userName = 'Admin User';
-    } else {
-      const staffAccounts = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
-      const staffMember = staffAccounts.find(staff => staff.email === this.userEmail);
-      if (staffMember) {
-        userName = staffMember.name;
+    // Load saved settings first to get display name
+    const userSettingsKey = `userSettings_${this.userEmail}`;
+    const savedSettings = JSON.parse(localStorage.getItem(userSettingsKey) || '{}');
+
+    // Get user name - prefer saved display_name
+    let userName = savedSettings.display_name || 'Unknown User';
+    
+    if (!savedSettings.display_name) {
+      if (this.userEmail === 'admin@aquaruse') {
+        userName = 'Admin User';
+      } else {
+        const staffAccounts = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
+        const staffMember = staffAccounts.find(staff => staff.email === this.userEmail);
+        if (staffMember) {
+          userName = staffMember.name;
+        }
       }
     }
 
@@ -448,10 +501,14 @@ class LaundryApp {
     document.getElementById('settingsName').value = userName;
     document.getElementById('settingsEmail').value = userEmail;
     document.getElementById('settingsRole').value = userRole.charAt(0).toUpperCase() + userRole.slice(1);
+    
+    // Make email editable for all users
+    const emailInput = document.getElementById('settingsEmail');
+    emailInput.readOnly = false;
+    emailInput.style.background = '';
+    emailInput.style.cursor = 'text';
 
-    // Load saved settings
-    const userSettingsKey = `userSettings_${this.userEmail}`;
-    const savedSettings = JSON.parse(localStorage.getItem(userSettingsKey) || '{}');
+    // Load theme and notification preferences
     document.getElementById('settingsTheme').value = savedSettings.theme || 'default';
     document.getElementById('settingsNotifications').value = savedSettings.notifications || 'all';
     document.getElementById('autoLogout').value = savedSettings.autoLogout || '0';
@@ -484,9 +541,11 @@ class LaundryApp {
 
   saveSettings() {
     const newName = document.getElementById('settingsName').value.trim();
+    const newEmail = document.getElementById('settingsEmail').value.trim();
     const theme = document.getElementById('settingsTheme').value;
     const notifications = document.getElementById('settingsNotifications').value;
     const autoLogout = document.getElementById('autoLogout').value;
+    const oldEmail = this.userEmail;
 
     // Handle password change
     const currentPassword = document.getElementById('currentPassword').value;
@@ -503,10 +562,27 @@ class LaundryApp {
       return;
     }
 
+    // Only validate email if it was changed
+    if (newEmail !== oldEmail) {
+      // Validate email format - simple check for @ symbol
+      if (!newEmail || !newEmail.includes('@')) {
+        window.AppUtils.showNotification('Please enter a valid email address!');
+        return;
+      }
+
+      // Check if email is already taken by another user
+      const staffAccounts = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
+      const emailExists = staffAccounts.some(staff => staff.email === newEmail);
+      if (emailExists) {
+        window.AppUtils.showNotification('This email is already in use!');
+        return;
+      }
+    }
+
     // Handle password change for staff (localStorage only)
     if (newPassword && this.getUserRole() === 'staff') {
       const staffAccounts = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
-      const staffIndex = staffAccounts.findIndex(staff => staff.email === this.userEmail);
+      const staffIndex = staffAccounts.findIndex(staff => staff.email === oldEmail);
       if (staffIndex !== -1) {
         // Verify current password
         if (currentPassword !== staffAccounts[staffIndex].password) {
@@ -518,13 +594,13 @@ class LaundryApp {
       }
     }
 
-    // Get current profile picture
-    const userSettingsKey = `userSettings_${this.userEmail}`;
-    const savedSettings = JSON.parse(localStorage.getItem(userSettingsKey) || '{}');
+    // Get current profile picture from old settings
+    const oldUserSettingsKey = `userSettings_${oldEmail}`;
+    const savedSettings = JSON.parse(localStorage.getItem(oldUserSettingsKey) || '{}');
 
-    // Prepare settings data
+    // Prepare settings data with new email
     const settingsData = {
-      email: this.userEmail,
+      email: newEmail,
       display_name: newName,
       theme: theme,
       notifications: notifications,
@@ -532,16 +608,59 @@ class LaundryApp {
       profilePicture: savedSettings.profilePicture || null
     };
 
-    // Save settings to localStorage with user-specific key
-    localStorage.setItem(userSettingsKey, JSON.stringify(settingsData));
+    // Check user role BEFORE changing email
+    const currentAdminEmail = localStorage.getItem('adminEmail') || 'admin@aquaruse';
+    const wasAdmin = oldEmail === currentAdminEmail;
+    const wasStaff = !wasAdmin && JSON.parse(localStorage.getItem('staffAccounts') || '[]').some(s => s.email === oldEmail);
 
-    // Update staff account if user is staff
-    if (this.getUserRole() === 'staff') {
+    // If email changed, migrate settings to new key and remove old key
+    if (newEmail !== oldEmail) {
+      const newUserSettingsKey = `userSettings_${newEmail}`;
+      localStorage.setItem(newUserSettingsKey, JSON.stringify(settingsData));
+      localStorage.removeItem(oldUserSettingsKey);
+      
+      // If this was admin, update the admin email FIRST
+      if (wasAdmin) {
+        localStorage.setItem('adminEmail', newEmail);
+      }
+      
+      // Update the session email
+      localStorage.setItem('userEmail', newEmail);
+      this.userEmail = newEmail;
+    } else {
+      // Save settings to localStorage with user-specific key
+      localStorage.setItem(oldUserSettingsKey, JSON.stringify(settingsData));
+    }
+
+    // Update staff account if user was staff
+    if (wasStaff) {
       const staffAccounts = JSON.parse(localStorage.getItem('staffAccounts') || '[]');
-      const staffIndex = staffAccounts.findIndex(staff => staff.email === this.userEmail);
+      const staffIndex = staffAccounts.findIndex(staff => staff.email === oldEmail);
       if (staffIndex !== -1) {
         staffAccounts[staffIndex].name = newName;
+        staffAccounts[staffIndex].email = newEmail; // Update email
         localStorage.setItem('staffAccounts', JSON.stringify(staffAccounts));
+        
+        // Also update in AppData.staff
+        if (window.AppData && window.AppData.staff) {
+          const appDataIndex = window.AppData.staff.findIndex(s => s.email === oldEmail);
+          if (appDataIndex !== -1) {
+            window.AppData.staff[appDataIndex].name = newName;
+            window.AppData.staff[appDataIndex].email = newEmail;
+            window.AppData.save();
+          }
+        }
+        
+        // Try to update in database
+        if (newEmail !== oldEmail && window.apiService) {
+          window.apiService.put('staff', {
+            old_email: oldEmail, // Use old email to find the record
+            name: newName,
+            email: newEmail,
+            phone: staffAccounts[staffIndex].phone,
+            password: staffAccounts[staffIndex].password
+          }).catch(err => console.warn('Could not update email in database:', err.message));
+        }
       }
     }
 

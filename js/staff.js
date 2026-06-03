@@ -393,10 +393,29 @@ class StaffModule {
       // Try to delete from API
       try {
         if (window.apiService) {
-          await window.apiService.delete('staff', { 
-            id: staffIdentifier,
-            email: staffIdentifier 
-          });
+          // Find the staff member to get both id and email
+          const staffMember = window.AppData.staff.find(s => 
+            s.id === staffIdentifier || s.email === staffIdentifier
+          ) || { id: staffIdentifier, email: staffIdentifier };
+          
+          // Send proper data - prefer numeric id if available
+          const deleteData = {};
+          if (staffMember.id && !isNaN(parseInt(staffMember.id))) {
+            deleteData.id = parseInt(staffMember.id);
+          } else if (staffMember.email) {
+            deleteData.email = staffMember.email;
+          } else {
+            // Fallback - try to determine if identifier is email or id
+            if (staffIdentifier.includes('@')) {
+              deleteData.email = staffIdentifier;
+            } else {
+              deleteData.id = staffIdentifier;
+            }
+          }
+          
+          console.log('Sending delete request with data:', deleteData);
+          await window.apiService.delete('staff', deleteData);
+          console.log('✅ Staff deleted from database');
         }
       } catch (apiError) {
         console.warn('Could not delete from API:', apiError.message);

@@ -137,11 +137,11 @@
               <div class="balance-cards">
                 <div class="balance-card">
                   <div class="balance-title">Total Income</div>
-                  <div class="balance-amount" id="balance-amount">₱53,452</div>
+                  <div class="balance-amount" id="balance-amount">₱0</div>
                 </div>
                 <div class="unpaid-card">
                   <div class="unpaid-title">Receivable</div>
-                  <div class="unpaid-amount" id="unpaid-amount">₱800</div>
+                  <div class="unpaid-amount" id="unpaid-amount">₱0</div>
                 </div>
               </div>
             </div>
@@ -177,6 +177,7 @@
               <button id="addOrderBtn" class="big-add-order">+</button>
             </div>
           </div>
+        </div>
       </section>
       <section id="orders-section" style="display:none;">
         <div class="section-header">
@@ -547,10 +548,10 @@
             <div class="settings-tab-content active" id="profile-tab">
               <div class="profile-picture-section">
                 <div class="current-avatar" id="currentAvatar">CL</div>
-                <div class="profile-upload">
-                  <input type="file" id="profilePicture" accept="image/*" style="display: none;" onchange="console.log('File input changed!', event); if(window.laundryApp) window.laundryApp.handleProfilePictureUpload(event); else alert('laundryApp not found!');">
-                  <button type="button" id="uploadProfileBtn" class="upload-btn" onclick="console.log('Upload button clicked!'); var input = document.getElementById('profilePicture'); console.log('Input element:', input); if(input) input.click(); else alert('Input not found!');">Change Picture</button>
-                  <button type="button" id="removeProfileBtn" class="remove-btn" onclick="console.log('Remove button clicked!'); if(window.laundryApp) window.laundryApp.removeProfilePicture(); else alert('laundryApp not found!');">Remove</button>
+                <div class="profile-upload" style="display: flex; flex-direction: column; gap: 8px;">
+                  <input type="file" id="profilePicture" accept="image/*" style="position: absolute; opacity: 0; width: 1px; height: 1px;">
+                  <label for="profilePicture" class="upload-btn" style="cursor: pointer; display: inline-block; padding: 10px 20px; background: #718EBF; color: white; border-radius: 8px; font-weight: 600; text-align: center;">Change Picture</label>
+                  <button type="button" id="removeProfileBtn" class="remove-btn" style="cursor: pointer; pointer-events: auto;">Remove</button>
                 </div>
               </div>
 
@@ -558,7 +559,7 @@
               <input type="text" id="settingsName" name="settingsName" required />
 
               <label for="settingsEmail">Email</label>
-              <input type="email" id="settingsEmail" name="settingsEmail" readonly style="background: #f5f5f5;" />
+              <input type="email" id="settingsEmail" name="settingsEmail" />
 
               <label for="settingsRole">Role</label>
               <input type="text" id="settingsRole" name="settingsRole" readonly style="background: #f5f5f5;" />
